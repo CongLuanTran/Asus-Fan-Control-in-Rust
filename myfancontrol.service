@@ -1,0 +1,11 @@
+[Unit]
+Description=My Asus Fan Control
+
+[Service]
+ExecStart=/usr/local/bin/myfancontrol
+Restart=on-failure
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

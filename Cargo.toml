@@ -1,6 +1,11 @@
+[[bin]]
+name="myfancontrol"
+path="src/main.rs"
+
 [package]
 name = "fancontrol"
 version = "0.1.0"
+authors = ["Cong Luan Tran"]
 edition = "2021"
 
 [dependencies]
