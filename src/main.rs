@@ -37,6 +37,7 @@ fn main() {
     let mut record = [0.0; 10];
     let mut sum = 0.0;
     let mut index = 0;
+    let mut length = 0.0;
     loop {
         // We first use refresh to read the latest info
         cpu.refresh();
@@ -45,11 +46,14 @@ fn main() {
         // Then add the new value
         record[index] = cpu.temperature();
         sum += record[index];
+        if length < 10.0 {
+            length += 1.0;
+        }
         // And we move the index forward
         index = (index + 1) % 10;
-        // If the sum is higher than 500 (i.e. the average is higher than 50)
+        // If the average is higher than 50
         // We turn the fan on full speed, else return it to auto
-        let value = if sum < 500.0 { 2 } else { 0 };
+        let value = if sum/length < 50.0 { 2 } else { 0 };
         // Write the value into the file
         fs::write(pwm.path(), value.to_string()).unwrap();
         // Wait until the next interval
