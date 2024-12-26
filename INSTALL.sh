@@ -3,7 +3,9 @@
 # Use cargo to install the packages, the default installation is $Home/.cargo/bin
 cargo install --path .
 # Create a symlink to /usr/local/bin because systemd service should have static path
-sudo ln -s "$HOME/.cargo/bin/myfancontrol" /usr/local/bin
+if [ -z "$(find /usr/local/bin)" ]; then
+    sudo ln -s "$HOME/.cargo/bin/myfancontrol" /usr/local/bin
+fi
 # Copy the service file into the service file directory of systemd
 sudo cp myfancontrol.service /etc/systemd/system
 
