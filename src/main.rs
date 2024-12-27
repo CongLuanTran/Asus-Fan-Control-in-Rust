@@ -30,32 +30,35 @@ fn main() {
         .find(|file| file.path().to_string_lossy().contains("pwm1_enable"))
         .expect("Error: Cannot find pwm1_enable file");
 
+    let pwm1_enable= pwm.path();
+
     // Set the loop interval, here I will read the temperature every second
-    let interval = Duration::from_secs(1);
+    let interval = Duration::from_secs(3);
     let mut next_time = Instant::now() + interval;
     // Just some variable to hold the value
-    let mut record = [0.0; 10];
-    let mut sum = 0.0;
+    let mut record = [0; 10];
+    let mut sum = 0;
     let mut index = 0;
-    let mut length = 0.0;
+    let mut length = 0;
     loop {
         // We first use refresh to read the latest info
         cpu.refresh();
         // Then we remove the oldest value
         sum -= record[index];
         // Then add the new value
-        record[index] = cpu.temperature();
+        record[index] = cpu.temperature() as u16;
         sum += record[index];
-        if length < 10.0 {
-            length += 1.0;
+        if length < 10 {
+            length += 1;
         }
         // And we move the index forward
         index = (index + 1) % 10;
         // If the average is higher than 50
         // We turn the fan on full speed, else return it to auto
-        let value = if sum/length < 50.0 { 2 } else { 0 };
+        let value = if sum/length < 50 { 2 } else { 0 };
         // Write the value into the file
-        fs::write(pwm.path(), value.to_string()).unwrap();
+        fs::write(pwm1_enable, value.to_string())
+        .expect("Error: Cannot write into pwm1_enable");
         // Wait until the next interval
         sleep(next_time - Instant::now());
         next_time += interval;
