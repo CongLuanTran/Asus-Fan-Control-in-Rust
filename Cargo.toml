@@ -1,6 +1,6 @@
 [[bin]]
-name="myfancontrol"
-path="src/main.rs"
+name = "myfancontrol"
+path = "src/main.rs"
 
 [package]
 name = "fancontrol"
@@ -9,5 +9,5 @@ authors = ["Cong Luan Tran"]
 edition = "2021"
 
 [dependencies]
-sysinfo = "0.32.1"
+sysinfo = "0.34.2"
 walkdir = "2.5.0"
