@@ -53,15 +53,18 @@ fn main() {
     // Set the loop interval, here I will read the temperature every 5 second
     let interval = Duration::from_secs(5);
     let mut next_time = Instant::now() + interval;
-    // Just some variable to hold the value
+    // Read the temp for the first time
     let mut temp = cpu.temperature().unwrap() as u16;
+    // My computer normal temperature usually fluctuate around 50, so I consider 60 to be 'abnormal'
+    // You can set it to what ever value you like
+    let threshold = 60;
     loop {
         // We first use refresh to read the latest info
         cpu.refresh();
         // Smoothing the temperature by taking a mean of its current and previous reading
         temp = (temp + cpu.temperature().unwrap() as u16) / 2;
-        // We turn the fan on full speed, else return it to auto
-        let value = if temp < 50 { 2 } else { 0 };
+        // We turn the fan on full speed if the temperature reach the threshold, else return it to auto
+        let value = if temp < threshold { 2 } else { 0 };
         // Write the value into the file
         write_pwn1(&pwn1_enable, value);
         // Wait until the next interval
