@@ -9,5 +9,5 @@ authors = ["Cong Luan Tran"]
 edition = "2021"
 
 [dependencies]
-sysinfo = "0.34.2"
+sysinfo = "0.36.0"
 walkdir = "2.5.0"
