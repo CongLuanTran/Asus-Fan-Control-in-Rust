@@ -9,5 +9,8 @@ authors = ["Cong Luan Tran"]
 edition = "2021"
 
 [dependencies]
+clap = { version = "4.5.41", features = ["derive"] }
+strum = "0.27.1"
+strum_macros = "0.27.1"
 sysinfo = "0.36.0"
 walkdir = "2.5.0"

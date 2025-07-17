@@ -161,11 +161,6 @@ fn start_daemon() {
         // Write the value into the file
         write_pwn1(&pwn1_enable, value);
 
-        // // Write to stdout, which systemd will capture
-        // print!(
-        //     "Fan Status: {}, Latest Temperature: {}°C",
-        //     controller.fan_state, controller.latest_temp
-        // );
         // Wait until the next interval
         thread::sleep(controller.next_read - Instant::now());
     }
