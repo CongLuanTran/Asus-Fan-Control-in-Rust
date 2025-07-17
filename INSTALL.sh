@@ -7,11 +7,11 @@ if [ -z "$(find /usr/local/bin)" ]; then
     sudo ln -s "$HOME/.cargo/bin/myfancontrol" /usr/local/bin
 fi
 # Copy the service file into the service file directory of systemd
-sudo cp myfancontrol.service /etc/systemd/system
+sudo cp fanctl.service /etc/systemd/system
 
 # Reload systemd daemon
 sudo systemctl daemon-reload
 # Enable the service
-sudo systemctl enable myfancontrol
+sudo systemctl enable fanctl
 # Start it now
-sudo systemctl start myfancontrol
+sudo systemctl start fanctl

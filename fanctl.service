@@ -2,10 +2,10 @@
 Description=My Asus Fan Control
 
 [Service]
-ExecStart=/usr/local/bin/myfancontrol
+ExecStart=/usr/local/bin/fanctl daemon
 Restart=on-failure
 RestartSec=5
 User=root
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target

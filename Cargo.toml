@@ -1,9 +1,9 @@
 [[bin]]
-name = "myfancontrol"
+name = "fanctl"
 path = "src/main.rs"
 
 [package]
-name = "fancontrol"
+name = "fanctl"
 version = "0.1.0"
 authors = ["Cong Luan Tran"]
 edition = "2021"
