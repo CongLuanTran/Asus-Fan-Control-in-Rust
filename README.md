@@ -1,11 +1,14 @@
 # Simple Fan Control in Rust
+
 <!--toc:start-->
+
 - [Simple Fan Control in Rust](#simple-fan-control-in-rust)
   - [Why do I need this program?](#why-do-i-need-this-program)
   - [Dependencies](#dependencies)
   - [Installation](#installation)
   - [TODO](#todo)
-<!--toc:end-->
+  <!--toc:end-->
+
 ## Why do I need this program?
 
 This repository's main purpose is to show how I control my asus laptop fan
@@ -36,14 +39,12 @@ The easiest way should be to clone this repository to whatever folder you like,
 then `cd` into it and run.
 
 ```bash
-chmod +x INSTALL.sh
-./INSTALL.sh
+make install-all
 ```
 
-You can also read the `INSTALL.sh` file to know more about what it does.
+You can also read the `Makefile` file to know more about what it does.
 
 ## TODO
 
 - [ ] Make the code more modular
 - [ ] Add test
-
