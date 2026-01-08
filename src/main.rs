@@ -7,7 +7,7 @@ use tokio::{signal, sync::mpsc::channel};
 
 #[tokio::main]
 async fn main() {
-    let socket_path = String::from("/run/fanctl/fanctl.socket");
+    let socket_path = String::from("/run/fanctl.socket");
     let (shutdown_sender, shutdown_receiver) = channel(1);
 
     tokio::spawn(async move {

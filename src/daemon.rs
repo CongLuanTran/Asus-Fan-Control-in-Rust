@@ -1,3 +1,4 @@
+use std::os::unix::fs::PermissionsExt;
 use std::process::exit;
 
 use crate::cli::Command;
@@ -14,6 +15,10 @@ pub async fn daemon(socket_path: String, mut shutdown_receiver: Receiver<()>) {
     /*---------setup Unix socket---------*/
     if fs::remove_file(&socket_path).await.is_err() {};
     let listener = UnixListener::bind(&socket_path).expect("Could not create unix socket");
+    if let Err(e) = fs::set_permissions(&socket_path, std::fs::Permissions::from_mode(0o666)).await
+    {
+        eprintln!("warning: failed to set socket permissions: {e}");
+    }
 
     /*---------handle shutdown gracefully---------*/
     tokio::spawn(async move {
