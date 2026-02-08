@@ -1,5 +1,6 @@
 use serde::Deserialize;
 use std::fs;
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use strum_macros::Display;
 
@@ -13,12 +14,16 @@ pub enum FanState {
 
 #[derive(Debug, Deserialize)]
 pub struct FanControllerConfig {
+    #[serde(alias = "threshold_enable")]
     t_enable: Option<f32>, // Temperature to turn on at full speed, default to 70
-    t_auto: Option<f32>,   // Temperature to return to automatic control, default to 60
+    #[serde(alias = "threshold_auto")]
+    t_auto: Option<f32>, // Temperature to return to automatic control, default to 60
     interval: Option<Duration>, // How frequent does the program read sensor value, default to 5s
-    delay: Option<Duration>, // The delay before the fan can be returned to auto, default to 30s
-    b_rise: Option<f32>,   // Bias for new temperature read when it rises
-    b_drop: Option<f32>,   // Bias for new temperature read when it drops
+    delay: Option<Duration>,    // The delay before the fan can be returned to auto, default to 30s
+    #[serde(alias = "bias_rise")]
+    b_rise: Option<f32>, // Bias for new temperature read when it rises
+    #[serde(alias = "bias_drop")]
+    b_drop: Option<f32>, // Bias for new temperature read when it drops
 }
 
 impl Default for FanControllerConfig {
@@ -37,33 +42,34 @@ impl Default for FanControllerConfig {
 impl FanControllerConfig {
     pub fn load_user_config() -> Self {
         let mut cfg = Self::default();
-        let path = dirs::config_local_dir()
-            .expect("Error: cannot find local config directory")
-            .join("fanctl")
-            .join("config.toml");
-        if let Ok(content) = fs::read_to_string(path) {
-            if let Ok(user_config) = toml::from_str::<FanControllerConfig>(&content) {
-                if let Some(t_enable) = user_config.t_enable {
-                    cfg.t_enable = Some(t_enable)
+        let cfg_path = PathBuf::from("/etc/fanctl/config.toml");
+        if fs::exists(&cfg_path).is_ok_and(|b| b) {
+            match fs::read_to_string(&cfg_path) {
+                Ok(content) => {
+                    if let Ok(user_cfg) = toml::from_str::<FanControllerConfig>(&content) {
+                        cfg.merge(user_cfg);
+                    }
                 }
-                if let Some(t_auto) = user_config.t_auto {
-                    cfg.t_auto = Some(t_auto)
-                }
-                if let Some(interval) = user_config.interval {
-                    cfg.interval = Some(interval)
-                }
-                if let Some(delay) = user_config.delay {
-                    cfg.delay = Some(delay)
-                }
-                if let Some(b_rise) = user_config.b_rise {
-                    cfg.b_rise = Some(b_rise)
-                }
-                if let Some(b_drop) = user_config.b_drop {
-                    cfg.b_drop = Some(b_drop)
+                Err(e) => {
+                    eprintln!("Error: encountered error reading config file: {e}");
                 }
             }
+        } else {
+            eprintln!(
+                "Error: cannot find config file at {}, using default value",
+                &cfg_path.display()
+            );
         }
         cfg
+    }
+
+    fn merge(&mut self, other: Self) {
+        self.t_enable = other.t_enable.or(self.t_enable);
+        self.t_auto = other.t_auto.or(self.t_auto);
+        self.interval = other.interval.or(self.interval);
+        self.delay = other.delay.or(self.delay);
+        self.b_rise = other.b_rise.or(self.b_rise);
+        self.b_drop = other.b_drop.or(self.b_drop);
     }
 }
 
@@ -100,7 +106,7 @@ impl FanController {
         }
         .unwrap();
 
-        // Smooth the lastes value
+        // Smooth the latest value
         self.smoothed_temp = bias * temp + (1.0 - bias) * self.smoothed_temp;
         self.latest_temp = temp; // This is mostly for display
 
