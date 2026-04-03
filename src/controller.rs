@@ -2,7 +2,7 @@ use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use strum_macros::Display;
+use strum::Display;
 
 #[derive(Display, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FanState {
