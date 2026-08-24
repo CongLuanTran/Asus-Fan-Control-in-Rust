@@ -1,49 +1,86 @@
-# Simple Fan Control in Rust
+# ASUS Fan Control in Rust
 
-<!--toc:start-->
+A small daemon for Linux ASUS laptops that toggles fan mode based on CPU temperature.
 
-- [Simple Fan Control in Rust](#simple-fan-control-in-rust)
-  - [Why do I need this program?](#why-do-i-need-this-program)
-  - [Dependencies](#dependencies)
-  - [Installation](#installation)
-  - [TODO](#todo)
-  <!--toc:end-->
+It was built for machines where common fan control paths are missing, but `pwm1_enable` is available under `asus-nb-wmi`.
 
-## Why do I need this program?
+## What it does
 
-This repository's main purpose is to show how I control my asus laptop fan
-when all other methods failed. To be clear my fan is still working, but it speeds
-up too slow. Hopefully you shouldn't need this one. I believe that usually fan 
-control can be achieved with other means as suggested in the Arch Linux wiki [page](https://wiki.archlinux.org/title/Fan_speed_control).
+- Reads CPU package temperature from hardware sensors
+- Uses smoothing + hysteresis to avoid frequent fan mode switching
+- Switches `pwm1_enable` to:
+  - `0` → full speed
+  - `2` → automatic mode
+- Exposes a Unix socket so you can query status with `fanctl status`
 
-On ASUS laptops, there is `asus-nb-wmi`, a kernel module that can control one
-fan. According to the Arch wiki page linked above, there should a file called `pwm1`
-to control the speed of the fan, but in my system that file doesn't exist.
-Another way is to manually turn pwm mode on or off by writing a value into the
-file `pwm1_enable`. The default value is `2`, which is the default mode of the
-fan. Set it to `0` will turn the fan on at full speed, while `1` will shut it down.
+## Requirements
 
-The idea of this program is to read CPU temperature , then if it reach some
-threshold, we turn the fan on at full speed, else we return it to default mode.
-More details are in the comment inside the `main.rs` file.
+- Linux with ASUS `asus-nb-wmi` hwmon support
+- A detectable CPU package sensor (`Package ...` label)
+- Rust toolchain (`rustup`)
+- `systemd`
+- Root privileges (service runs as root and writes to `/sys/.../pwm1_enable`)
 
-## Dependencies
+## Install
 
-This program need the rust toolchain to compile, so you should download `rustup`
-from the [official website](https://rustup.rs/).
-
-## Installation
-
-The easiest way should be to clone this repository to whatever folder you like,
-then `cd` into it and run.
+From the repository root:
 
 ```bash
 make install-all
 ```
 
-You can also read the `Makefile` file to know more about what it does.
+This will build the binary, install it to `/usr/local/bin/fanctl`, install `fanctl.service`, reload systemd, and start the service.
 
-## TODO
+## Usage
 
-- [ ] Make the code more modular
-- [ ] Add test
+Check live controller status:
+
+```bash
+fanctl status
+```
+
+Check service state:
+
+```bash
+make status-systemd
+```
+
+Stop service:
+
+```bash
+make stop-systemd
+```
+
+## Optional configuration
+
+If present, the daemon loads config from:
+
+- `/etc/fanctl/config.toml`
+
+Missing values fall back to defaults.
+
+Supported fields:
+
+- `t_enable` (alias: `threshold_enable`) — default `70.0`
+- `t_auto` (alias: `threshold_auto`) — default `60.0`
+- `b_rise` (alias: `bias_rise`) — default `0.6`
+- `b_drop` (alias: `bias_drop`) — default `0.4`
+
+Example:
+
+```toml
+t_enable = 72.0
+t_auto = 62.0
+b_rise = 0.7
+b_drop = 0.3
+```
+
+## Uninstall service
+
+```bash
+make uninstall-systemd
+```
+
+## Notes
+
+This project is hardware-specific and may not work on other laptop models or sensor layouts.
