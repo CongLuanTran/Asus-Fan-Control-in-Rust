@@ -1,8 +1,9 @@
 use serde::Deserialize;
-use std::fs;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
+use std::{fmt, fs};
 use strum::Display;
+use tracing::{error, info};
 
 #[derive(Display, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FanState {
@@ -12,7 +13,7 @@ pub enum FanState {
     Auto,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
 pub struct FanControllerConfig {
     #[serde(alias = "threshold_enable")]
     t_enable: Option<f32>, // Temperature to turn on at full speed, default to 70
@@ -26,50 +27,71 @@ pub struct FanControllerConfig {
     b_drop: Option<f32>, // Bias for new temperature read when it drops
 }
 
-impl Default for FanControllerConfig {
+#[derive(Debug)]
+pub struct RuntimeConfig {
+    t_enable: f32,
+    t_auto: f32,
+    interval: Duration,
+    delay: Duration,
+    b_rise: f32,
+    b_drop: f32,
+}
+
+impl fmt::Display for RuntimeConfig {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "t_enable: {}, t_auto: {}, interval {:?}, delay: {:?}, b_rise: {}, b_drop: {}",
+            self.t_enable, self.t_auto, self.interval, self.delay, self.b_rise, self.b_drop
+        )
+    }
+}
+
+impl Default for RuntimeConfig {
     fn default() -> Self {
         Self {
-            t_enable: Some(70.0),
-            t_auto: Some(60.0),
-            interval: Some(Duration::new(5, 0)),
-            delay: Some(Duration::new(30, 0)),
-            b_rise: Some(0.6),
-            b_drop: Some(0.4),
+            t_enable: 70.0,
+            t_auto: 60.0,
+            interval: Duration::new(5, 0),
+            delay: Duration::new(30, 0),
+            b_rise: 0.6,
+            b_drop: 0.4,
+        }
+    }
+}
+
+impl From<FanControllerConfig> for RuntimeConfig {
+    fn from(cfg: FanControllerConfig) -> Self {
+        let defaults = RuntimeConfig::default();
+
+        Self {
+            t_enable: cfg.t_enable.unwrap_or(defaults.t_enable),
+            t_auto: cfg.t_auto.unwrap_or(defaults.t_auto),
+            interval: cfg.interval.unwrap_or(defaults.interval),
+            delay: cfg.delay.unwrap_or(defaults.delay),
+            b_rise: cfg.b_rise.unwrap_or(defaults.b_rise),
+            b_drop: cfg.b_drop.unwrap_or(defaults.b_drop),
         }
     }
 }
 
 impl FanControllerConfig {
     pub fn load_user_config() -> Self {
-        let mut cfg = Self::default();
         let cfg_path = PathBuf::from("/etc/fanctl/config.toml");
-        if fs::exists(&cfg_path).is_ok_and(|b| b) {
-            match fs::read_to_string(&cfg_path) {
-                Ok(content) => {
-                    if let Ok(user_cfg) = toml::from_str::<FanControllerConfig>(&content) {
-                        cfg.merge(user_cfg);
-                    }
-                }
-                Err(e) => {
-                    eprintln!("Error: encountered error reading config file: {e}");
-                }
-            }
-        } else {
-            eprintln!(
-                "Error: cannot find config file at {}, using default value",
-                &cfg_path.display()
-            );
-        }
-        cfg
-    }
 
-    fn merge(&mut self, other: Self) {
-        self.t_enable = other.t_enable.or(self.t_enable);
-        self.t_auto = other.t_auto.or(self.t_auto);
-        self.interval = other.interval.or(self.interval);
-        self.delay = other.delay.or(self.delay);
-        self.b_rise = other.b_rise.or(self.b_rise);
-        self.b_drop = other.b_drop.or(self.b_drop);
+        fs::read_to_string(&cfg_path)
+            .map_err(|e| {
+                error!("Error: failed reading {}: {e}", cfg_path.display());
+            })
+            .ok()
+            .and_then(|content| {
+                toml::from_str::<FanControllerConfig>(&content)
+                    .map_err(|e| {
+                        error!("Error: invalid config {}: {e}", cfg_path.display());
+                    })
+                    .ok()
+            })
+            .unwrap_or_default()
     }
 }
 
@@ -79,7 +101,7 @@ spikes, but slow to drops.
 */
 #[derive(Debug)]
 pub struct FanController {
-    config: FanControllerConfig,
+    config: RuntimeConfig,   // Runtime configuration with defaults applied
     pub fan_state: FanState, // Current state of the fan
     smoothed_temp: f32,      // The smoothed temperature
     pub latest_temp: f32,    // The latest read temperature
@@ -87,7 +109,9 @@ pub struct FanController {
 }
 
 impl FanController {
-    pub fn new(config: FanControllerConfig) -> Self {
+    pub fn new(config: RuntimeConfig) -> Self {
+        info!("Using config: {}", config);
+
         Self {
             config,
             fan_state: FanState::Auto,
@@ -103,22 +127,21 @@ impl FanController {
             self.config.b_rise
         } else {
             self.config.b_drop
-        }
-        .unwrap();
+        };
 
         // Smooth the latest value
         self.smoothed_temp = bias * temp + (1.0 - bias) * self.smoothed_temp;
         self.latest_temp = temp; // This is mostly for display
 
         // Hysteresis switch fan state
-        if self.smoothed_temp >= self.config.t_enable.unwrap() {
+        if self.smoothed_temp >= self.config.t_enable {
             self.fan_state = FanState::Enabled;
             // Use the longer delay when turning the fan on
-            self.next_read += self.config.delay.unwrap();
+            self.next_read += self.config.delay;
         } else {
             // Else use the shorter interval
-            self.next_read += self.config.interval.unwrap();
-            if self.smoothed_temp <= self.config.t_auto.unwrap() {
+            self.next_read += self.config.interval;
+            if self.smoothed_temp <= self.config.t_auto {
                 self.fan_state = FanState::Auto;
             }
         }
@@ -131,6 +154,6 @@ impl FanController {
 
 impl Default for FanController {
     fn default() -> Self {
-        Self::new(FanControllerConfig::default())
+        Self::new(RuntimeConfig::default())
     }
 }

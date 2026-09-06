@@ -8,7 +8,7 @@ use sysinfo::Components;
 use tokio::fs;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
-use tokio::sync::mpsc::{channel, Receiver, Sender};
+use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tokio::sync::oneshot;
 
 pub async fn daemon(socket_path: String, mut shutdown_receiver: Receiver<()>) {
@@ -32,7 +32,7 @@ pub async fn daemon(socket_path: String, mut shutdown_receiver: Receiver<()>) {
             }
             None => {
                 eprintln!(
-                    "received nothing from the shutdown receiver. This should not be possible"
+                    "Received nothing from the shutdown receiver. This should not be possible"
                 )
             }
         }
@@ -60,7 +60,7 @@ async fn worker(mut receiver: Receiver<(Command, oneshot::Sender<String>)>) {
 
     /*---------initialize controller---------*/
     let config = FanControllerConfig::load_user_config();
-    let mut controller = FanController::new(config);
+    let mut controller = FanController::new(config.into());
     let temp = cpu.temperature().unwrap();
     controller.update(temp);
 
