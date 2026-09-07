@@ -11,12 +11,13 @@ use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tokio::sync::oneshot;
 
-pub async fn daemon(socket_path: String, mut shutdown_receiver: Receiver<()>) {
+use crate::conf::SOCKET;
+
+pub async fn daemon(mut shutdown_receiver: Receiver<()>) {
     /*---------setup Unix socket---------*/
-    if fs::remove_file(&socket_path).await.is_err() {};
-    let listener = UnixListener::bind(&socket_path).expect("Could not create unix socket");
-    if let Err(e) = fs::set_permissions(&socket_path, std::fs::Permissions::from_mode(0o666)).await
-    {
+    if fs::remove_file(SOCKET).await.is_err() {};
+    let listener = UnixListener::bind(SOCKET).expect("Could not create unix socket");
+    if let Err(e) = fs::set_permissions(SOCKET, std::fs::Permissions::from_mode(0o666)).await {
         eprintln!("warning: failed to set socket permissions: {e}");
     }
 
@@ -24,7 +25,7 @@ pub async fn daemon(socket_path: String, mut shutdown_receiver: Receiver<()>) {
     tokio::spawn(async move {
         match shutdown_receiver.recv().await {
             Some(()) => {
-                fs::remove_file(&socket_path)
+                fs::remove_file(SOCKET)
                     .await
                     .expect("Failed to remove socket file");
 

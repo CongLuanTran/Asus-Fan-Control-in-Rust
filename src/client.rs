@@ -4,9 +4,10 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 
 use crate::cli::Command;
+use crate::conf::SOCKET;
 
-pub async fn status(socket_path: String) {
-    let mut unixstream = UnixStream::connect(Path::new(&socket_path)).await.expect("Could not connect to the socket path. Ensure that the path is correct and is being listened on.");
+pub async fn status() {
+    let mut unixstream = UnixStream::connect(Path::new(SOCKET)).await.expect("Could not connect to the socket path. Ensure that the path is correct and is being listened on.");
 
     let payload = serde_json::to_vec(&Command::Status).unwrap();
     match unixstream.write_all(&payload).await {
