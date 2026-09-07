@@ -1,9 +1,6 @@
 use std::os::unix::fs::PermissionsExt;
 use std::process::exit;
 
-use crate::cli::Command;
-use crate::controller::{FanController, FanControllerConfig, FanState};
-use crate::utils::{find_cpu, find_pwn1, write_pwn1};
 use sysinfo::Components;
 use tokio::fs;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -11,7 +8,10 @@ use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::mpsc::{Receiver, Sender, channel};
 use tokio::sync::oneshot;
 
+use crate::cli::Command;
 use crate::conf::SOCKET;
+use crate::controller::{FanController, FanControllerConfig, FanState};
+use crate::utils::{find_cpu, find_pwn1, write_pwn1};
 
 pub async fn daemon(mut shutdown_receiver: Receiver<()>) {
     /*---------setup Unix socket---------*/

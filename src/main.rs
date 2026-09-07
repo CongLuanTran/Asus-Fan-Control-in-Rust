@@ -1,10 +1,10 @@
-use ::tracing_subscriber::prelude::*;
 use clap::Parser;
+use tokio::{signal, sync::mpsc::channel};
+use tracing_subscriber::prelude::*;
+
 use fanctl::cli::{Cli, Command};
 use fanctl::client::status;
 use fanctl::daemon::daemon;
-
-use tokio::{signal, sync::mpsc::channel};
 
 #[tokio::main]
 async fn main() {

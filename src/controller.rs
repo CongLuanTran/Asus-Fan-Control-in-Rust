@@ -1,7 +1,8 @@
-use serde::Deserialize;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 use std::{fmt, fs};
+
+use serde::Deserialize;
 use strum::Display;
 use tracing::{error, info};
 
